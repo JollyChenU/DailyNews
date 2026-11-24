@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import Form, { getDefaultRegistry } from '@rjsf/core'
 import type { FieldProps, WidgetProps } from '@rjsf/utils'
 import validator from '@rjsf/validator-ajv8'
-import { Button, Card, Input, InputNumber, Select, Switch } from 'antd'
+import { Button, Card, Input, InputNumber, Select, Switch, Tabs } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 
 const TextWidget = ({ id, value, onChange, placeholder }: WidgetProps) => (
@@ -61,6 +61,7 @@ const TagsWidget = ({ id, value, onChange, placeholder, disabled }: Pick<WidgetP
 
 const widgets = {
   TextWidget,
+  URLWidget: TextWidget,
   TextareaWidget,
   SelectWidget,
   CheckboxWidget,
@@ -109,7 +110,7 @@ function ArrayFieldTemplate(props: any) {
                   type="text"
                   danger
                   icon={<DeleteOutlined />}
-                  onClick={() => props.onDropClick(index)}
+                  onClick={item.onDropIndexClick(index)}
                   aria-label="删除配置项"
                 />
               }
@@ -120,7 +121,7 @@ function ArrayFieldTemplate(props: any) {
         </div>
       )}
       {canAdd && (
-        <Button type="dashed" block icon={<PlusOutlined />} onClick={onAddClick} className="rjsf-array-add">
+        <Button type="dashed" icon={<PlusOutlined />} onClick={onAddClick} className="rjsf-array-add">
           {addLabel}
         </Button>
       )}
@@ -128,27 +129,35 @@ function ArrayFieldTemplate(props: any) {
   )
 }
 
-const cardGridTitles = new Set(['新闻源设置', 'Profile 参数', '分类分组'])
+const platformNames: Record<string, string> = {
+  github: 'GitHub', hackernews: 'Hacker News', hacker_news: 'Hacker News', rss: 'RSS',
+  reddit: 'Reddit', telegram: 'Telegram', twitter: 'Twitter / X', openbb: 'OpenBB',
+  ossinsight: 'OSS Insight', oss_insight: 'OSS Insight', gdelt: 'GDELT', google_news: 'Google News',
+}
 
-function ObjectFieldTemplate(props: any) {
-  const { title, description, properties } = props
-  const cardGrid = cardGridTitles.has(title)
-  const wideProperties = title === '新闻源设置' ? properties : []
-  const compactProperties = cardGrid
-    ? properties.filter((element: any) => !wideProperties.some((wide: any) => wide.name === element.name))
-    : properties
-  const renderProperty = (element: any, wide = false) => (
-    <div key={element.name} className={`rjsf-property ${wide ? 'rjsf-card-wide' : ''}`}>
-      {element.content}
-    </div>
-  )
+function ObjectFieldTemplate({ title, description, properties, uiSchema, idSchema }: any) {
+  if (uiSchema?.['ui:options']?.platformTabs) {
+    return (
+      <Tabs
+        className="platform-tabs"
+        items={properties.map((property: any) => ({
+          key: property.name,
+          label: platformNames[property.name] || property.name,
+          children: property.content,
+        }))}
+      />
+    )
+  }
+  const fields = properties.map((property: any) => (
+    <div key={property.name} className="rjsf-property">{property.content}</div>
+  ))
+  if (idSchema.$id === 'root') {
+    return <div className={uiSchema?.sources ? 'rjsf-sources' : 'rjsf-settings-grid'}>{fields}</div>
+  }
   return (
-    <Card size="small" className="rjsf-object" title={title && !title.endsWith('Config') ? title : undefined} bordered>
+    <Card size="small" className="rjsf-object" title={title && !title.endsWith('Config') ? title : undefined}>
       {description && <p className="field-description">{description}</p>}
-      {wideProperties.map((element: any) => renderProperty(element, true))}
-      <div className={cardGrid ? 'rjsf-card-properties' : undefined}>
-        {compactProperties.map((element: any) => renderProperty(element))}
-      </div>
+      {fields}
     </Card>
   )
 }

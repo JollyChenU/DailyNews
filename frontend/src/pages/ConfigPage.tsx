@@ -515,6 +515,7 @@ export function ConfigPage() {
                         schema={section.schema}
                         formData={pickSection(draft, section.keys)}
                         uiSchema={{
+                          ...(section.key === 'sources' && { sources: { 'ui:options': { platformTabs: true } } }),
                           ai: { languages: { 'ui:widget': TagsWidget } },
                           webhook: { headers: { 'ui:widget': 'textarea' } },
                         }}
